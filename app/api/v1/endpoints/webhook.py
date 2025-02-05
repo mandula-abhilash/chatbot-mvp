@@ -36,8 +36,17 @@ async def receive_message(
 ):
     """Handle incoming WhatsApp messages"""
     try:
+        # Log raw request details
+        logger.info(f"Received webhook POST request to {request.url}")
+        logger.info(f"Request headers: {dict(request.headers)}")
+        
+        # Get and log raw body
+        body = await request.body()
+        logger.info(f"Raw request body: {body.decode()}")
+        
+        # Parse JSON
         data = await request.json()
-        logger.debug(f"Received webhook data: {data}")
+        logger.info(f"Parsed webhook data: {data}")
 
         # Extract message data
         entry = data["entry"][0]
@@ -54,12 +63,17 @@ async def receive_message(
 
             # Process message and send reply
             reply_text = "Hello! Thanks for your message."
-            await whatsapp_service.send_message(sender, reply_text)
+            try:
+                await whatsapp_service.send_message(sender, reply_text)
+                logger.info(f"Reply sent successfully to {sender}")
+            except Exception as e:
+                logger.error(f"Failed to send reply to {sender}: {str(e)}")
+                raise
 
         return Response(content="OK", media_type="text/plain")
 
     except Exception as e:
-        logger.error(f"Error processing webhook: {str(e)}")
+        logger.error(f"Error processing webhook: {str(e)}", exc_info=True)
         return Response(
             content="Internal Server Error",
             media_type="text/plain",
