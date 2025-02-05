@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Request, HTTPException, Depends, Query
 from fastapi.responses import Response
 
 from app.core.config import get_settings, Settings
@@ -9,12 +9,19 @@ router = APIRouter()
 
 @router.get("/webhook")
 async def verify_webhook(
-    hub_mode: str,
-    hub_verify_token: str,
-    hub_challenge: str,
+    hub_mode: str = Query(..., alias="hub.mode"),
+    hub_verify_token: str = Query(..., alias="hub.verify_token"),
+    hub_challenge: str = Query(..., alias="hub.challenge"),
     settings: Settings = Depends(get_settings)
 ):
     """Webhook verification endpoint"""
+
+    # Log query parameters
+    logger.info(
+        f"Received Webhook Verification Request: hub_mode={hub_mode}, "
+        f"hub_verify_token={hub_verify_token}, hub_challenge={hub_challenge}"
+    )
+    
     if hub_mode == "subscribe" and hub_verify_token == settings.verify_token:
         logger.info("Webhook verified successfully")
         return int(hub_challenge)
