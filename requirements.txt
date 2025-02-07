@@ -7,3 +7,6 @@ pydantic-settings==2.7.1
 python-jose==3.3.0
 python-multipart==0.0.20
 httpx==0.28.1
+openai==1.61.1
+pytest==8.3.4
+pytest-asyncio==0.25.3

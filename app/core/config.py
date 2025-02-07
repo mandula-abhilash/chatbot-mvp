@@ -8,6 +8,11 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     whatsapp_api_version: str = "v15.0"
     whatsapp_api_url: str = "https://graph.facebook.com"
+    
+    # OpenAI settings
+    enable_openai_responses: bool = True
+    openai_api_key: str
+    openai_system_prompt: str = "You are a helpful assistant for a business. Be concise and professional in your responses."
 
     class Config:
         env_file = ".env"

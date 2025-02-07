@@ -4,6 +4,7 @@ from fastapi.responses import Response
 from app.core.config import get_settings, Settings
 from app.core.logger import logger
 from app.services.whatsapp import WhatsAppService
+from app.services.openai_service import OpenAIService
 
 router = APIRouter()
 
@@ -32,7 +33,8 @@ async def verify_webhook(
 @router.post("/webhook")
 async def receive_message(
     request: Request,
-    whatsapp_service: WhatsAppService = Depends(WhatsAppService)
+    whatsapp_service: WhatsAppService = Depends(WhatsAppService),
+    openai_service: OpenAIService = Depends(OpenAIService)
 ):
     """Handle incoming WhatsApp messages"""
     try:
@@ -61,8 +63,12 @@ async def receive_message(
             
             logger.info(f"Message received from {sender}: {text}")
 
-            # Process message and send reply
-            reply_text = "Hello! Thanks for your message."
+            # Get OpenAI response if enabled
+            reply_text = await openai_service.get_response(text)
+            if reply_text is None:
+                reply_text = "Hello! Thanks for your message."
+
+            # Send reply
             try:
                 await whatsapp_service.send_message(sender, reply_text)
                 logger.info(f"Reply sent successfully to {sender}")
