@@ -23,7 +23,7 @@ class OpenAIService:
         try:
             logger.info(f"Generating OpenAI response for message: {message}")
             response = await self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": self.settings.openai_system_prompt},
                     {"role": "user", "content": message}
