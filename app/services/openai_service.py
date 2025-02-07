@@ -9,8 +9,9 @@ from app.core.logger import logger
 class OpenAIService:
     def __init__(self, settings: Settings = Depends(get_settings)):
         self.settings = settings
-        self.client = AsyncOpenAI(api_key=settings.openai_api_key)
         self.enabled = settings.enable_openai_responses
+        if self.enabled:
+            self.client = AsyncOpenAI(api_key=settings.openai_api_key)
         logger.info(f"OpenAI service initialized. Enabled: {self.enabled}")
 
     async def get_response(self, message: str) -> Optional[str]:
