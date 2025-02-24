@@ -7,7 +7,7 @@ export async function up(knex) {
     knex.schema
       // Create businesses table
       .createTable("businesses", (table) => {
-        table.increments("id").primary();
+        table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
         table.string("name", 255).notNullable();
         table.text("description");
         table.string("website_url", 255);
