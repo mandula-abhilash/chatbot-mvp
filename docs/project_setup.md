@@ -72,7 +72,7 @@ docker-compose down
 #### **🔹 Run Without PM2 (Temporary Execution)**
 
 ```sh
-nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 > chatbot-server.log 2>&1 &
+nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 > chatbot-ai-service-8000.log 2>&1 &
 ```
 
 #### **🔹 Run with PM2 (Recommended)**
@@ -89,22 +89,23 @@ pm2 start "uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2" --name c
 #### **🔹 Start with PM2**
 
 ```sh
-pm install -g pm2  # If not installed
+npm install -g pm2  # If not installed
 pm2 start ecosystem.config.js --name chatbot-backend-node-3000
 ```
 
 #### **🔹 Restart Services if Needed**
 
 ```sh
-pm2 restart visdak-chatbot
-pm2 restart chatbot-api
+pm2 restart chatbot-backend-node-3000
+pm2 restart chatbot-ai-service-8000
 ```
 
 #### **🔹 Check Running Processes**
 
 ```sh
 pm2 list
-pm2 logs
+pm2 logs chatbot-backend-node-3000
+pm2 logs chatbot-ai-service-8000
 ```
 
 ---
@@ -138,8 +139,8 @@ echo "*.env" >> .gitignore
 ### **5.1 Checking PM2 Logs**
 
 ```sh
-pm2 logs visdak-chatbot
-pm2 logs chatbot-api
+pm2 logs chatbot-backend-node-3000
+pm2 logs chatbot-ai-service-8000
 ```
 
 ### **5.2 Viewing Docker Logs**
