@@ -1,0 +1,13 @@
+# Node.js Dependencies
+node_modules/
+npm-debug.log
+yarn.lock
+package-lock.json
+
+# Logs
+logs/
+*.log
+
+# Env
+.env
+.env.local
