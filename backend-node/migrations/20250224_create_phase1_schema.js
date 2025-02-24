@@ -3,6 +3,9 @@
  * @returns { Promise<void> }
  */
 export async function up(knex) {
+  // First, ensure the uuid-ossp extension is enabled
+  await knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
+
   return (
     knex.schema
       // Create businesses table
@@ -20,9 +23,9 @@ export async function up(knex) {
 
       // Create business_faqs table
       .createTable("business_faqs", (table) => {
-        table.increments("id").primary();
+        table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
         table
-          .integer("business_id")
+          .uuid("business_id")
           .references("id")
           .inTable("businesses")
           .onDelete("CASCADE");
@@ -35,9 +38,9 @@ export async function up(knex) {
 
       // Create business_services table
       .createTable("business_services", (table) => {
-        table.increments("id").primary();
+        table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
         table
-          .integer("business_id")
+          .uuid("business_id")
           .references("id")
           .inTable("businesses")
           .onDelete("CASCADE");
@@ -51,9 +54,9 @@ export async function up(knex) {
 
       // Create business_hours table
       .createTable("business_hours", (table) => {
-        table.increments("id").primary();
+        table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
         table
-          .integer("business_id")
+          .uuid("business_id")
           .references("id")
           .inTable("businesses")
           .onDelete("CASCADE");
