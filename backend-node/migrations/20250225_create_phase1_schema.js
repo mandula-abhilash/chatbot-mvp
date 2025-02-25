@@ -98,8 +98,8 @@ export async function up(knex) {
         "Saturday",
         "Sunday",
       ]);
-    table.time("open_time").notNullable();
-    table.time("close_time").notNullable();
+    table.time("open_time").nullable();
+    table.time("close_time").nullable();
     table.boolean("is_closed").defaultTo(false);
     table.timestamp("created_at").defaultTo(knex.fn.now());
     table.timestamp("updated_at").defaultTo(knex.fn.now());
