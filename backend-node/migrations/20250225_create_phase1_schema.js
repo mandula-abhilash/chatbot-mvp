@@ -167,7 +167,13 @@ export async function up(knex) {
       ])
       .defaultTo("text");
     table
-      .enum("message_status", ["sent", "delivered", "read", "failed"])
+      .enum("message_status", [
+        "sent",
+        "delivered",
+        "read",
+        "failed",
+        "received",
+      ])
       .defaultTo("sent");
     table.jsonb("metadata").defaultTo("{}");
     table.timestamp("received_at").defaultTo(knex.fn.now());
