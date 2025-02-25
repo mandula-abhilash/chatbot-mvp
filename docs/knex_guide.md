@@ -59,7 +59,7 @@ export async function down(knex) {
 ### 3. Running Migrations
 
 ```bash
-# Run all pending migrations
+# Run all pending migrations (Main command)
 npm run migrate:latest
 
 # Rollback the last batch of migrations
@@ -139,6 +139,8 @@ table.timestamp("updated_at").defaultTo(knex.fn.now());
 ### Checking Migration Status
 
 To see which migrations have been run:
+
+# Main command to check the status
 
 ```bash
 npx knex migrate:status
