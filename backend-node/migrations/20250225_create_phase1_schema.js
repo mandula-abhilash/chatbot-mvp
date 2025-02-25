@@ -135,6 +135,8 @@ export async function up(knex) {
     table.boolean("is_active").defaultTo(true);
     table.timestamp("started_at").defaultTo(knex.fn.now());
     table.timestamp("ended_at").nullable();
+    table.timestamp("created_at").defaultTo(knex.fn.now());
+    table.timestamp("updated_at").defaultTo(knex.fn.now());
   });
 
   // Recreate whatsapp_messages table
