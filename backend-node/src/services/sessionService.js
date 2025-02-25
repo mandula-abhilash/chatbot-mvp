@@ -17,16 +17,7 @@ export const processIncomingMessage = async (
   businessId
 ) => {
   try {
-    // Log the incoming message
-    await logMessage({
-      business_id: businessId,
-      phone_number: phoneNumber,
-      message_direction: "incoming",
-      message_text: message,
-      message_type: "text",
-      message_status: "received",
-    });
-
+    // First get or create session
     let session = await getActiveSession(phoneNumber, businessId);
 
     // Check if message is "Accepted" to close session
@@ -35,13 +26,27 @@ export const processIncomingMessage = async (
       return;
     }
 
-    // If no active session or session expired, create new one and send greeting
+    // If no active session or session expired, create new one
     if (!session || isSessionExpired(session)) {
       if (session) {
         await closeSession(session.id);
       }
-
       session = await createSession(phoneNumber, businessId);
+    }
+
+    // Now that we have a valid session, log the incoming message
+    await logMessage({
+      business_id: businessId,
+      session_id: session.id, // Include session_id here
+      phone_number: phoneNumber,
+      message_direction: "incoming",
+      message_text: message,
+      message_type: "text",
+      message_status: "received",
+    });
+
+    // If this was a new session, send the greeting
+    if (!session || isSessionExpired(session)) {
       const greeting = await getBusinessGreeting(businessId);
 
       if (greeting) {
