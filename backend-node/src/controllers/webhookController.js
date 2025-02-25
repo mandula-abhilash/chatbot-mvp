@@ -28,45 +28,72 @@ export const verifyWebhook = (req, res) => {
 
 export const handleWebhook = async (req, res) => {
   try {
-    // Log raw request details
-    logger.info(`Received webhook POST request to ${req.url}`);
+    // Log detailed request information
+    logger.info("Received webhook POST request");
     logger.info("Request headers:", req.headers);
-    logger.info("Raw request body:", req.body);
+    logger.info("Request body:", JSON.stringify(req.body, null, 2));
 
     const { object, entry } = req.body;
 
+    if (!object || !entry) {
+      logger.warn("Invalid webhook payload - missing object or entry");
+      return res
+        .status(400)
+        .json({ error: "Invalid webhook payload structure" });
+    }
+
     if (object !== "whatsapp_business_account") {
+      logger.warn(`Invalid object type: ${object}`);
       return res.status(400).json({ error: "Invalid request object" });
     }
 
+    logger.info(`Processing ${entry.length} entries`);
+
     for (const entryData of entry) {
+      logger.info("Processing entry:", JSON.stringify(entryData, null, 2));
+
+      if (!entryData.changes) {
+        logger.warn("Entry missing changes array");
+        continue;
+      }
+
       for (const change of entryData.changes) {
-        if (change.value.messages) {
-          for (const message of change.value.messages) {
-            const phoneNumber = message.from;
-            const messageText = message.text?.body;
-            const businessId = entryData.id;
+        logger.info("Processing change:", JSON.stringify(change, null, 2));
 
-            if (phoneNumber && messageText && businessId) {
-              logger.info(
-                `Message received from ${phoneNumber}: ${messageText}`
-              );
+        if (!change.value || !change.value.messages) {
+          logger.warn("Change missing value or messages");
+          continue;
+        }
 
-              try {
-                await processIncomingMessage(
-                  phoneNumber,
-                  messageText,
-                  businessId
-                );
-                logger.info(`Reply sent successfully to ${phoneNumber}`);
-              } catch (error) {
-                logger.error(
-                  `Failed to process message from ${phoneNumber}:`,
-                  error
-                );
-                throw error;
-              }
-            }
+        for (const message of change.value.messages) {
+          logger.info("Processing message:", JSON.stringify(message, null, 2));
+
+          const phoneNumber = message.from;
+          const messageText = message.text?.body;
+          const businessId = entryData.id;
+
+          if (!phoneNumber || !messageText || !businessId) {
+            logger.warn(
+              `Missing required message data: phone=${phoneNumber}, ` +
+                `text=${messageText}, businessId=${businessId}`
+            );
+            continue;
+          }
+
+          logger.info(
+            `Processing message from ${phoneNumber}: ${messageText} ` +
+              `for business ${businessId}`
+          );
+
+          try {
+            await processIncomingMessage(phoneNumber, messageText, businessId);
+            logger.info(`Successfully processed message from ${phoneNumber}`);
+          } catch (error) {
+            logger.error(
+              `Failed to process message from ${phoneNumber}:`,
+              error
+            );
+            // Don't throw here, continue processing other messages
           }
         }
       }
