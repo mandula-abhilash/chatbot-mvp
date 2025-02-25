@@ -2,7 +2,7 @@ server {
     server_name chatbot.visdak.com;
 
     location / {
-        proxy_pass http://127.0.0.1:8800;
+        proxy_pass http://127.0.0.1:8700;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -20,7 +20,6 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/chatbot.visdak.com/privkey.pem; # managed by Certbot
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-
 }
 
 server {
@@ -29,7 +28,7 @@ server {
     } # managed by Certbot
 
     server_name chatbot.visdak.com;
-
+    
     listen 80;
     return 404; # managed by Certbot
 }
