@@ -17,7 +17,13 @@ class WhatsAppService {
     `);
   }
 
-  async sendMessage(phoneNumber, message, type = "text", metadata = {}) {
+  async sendMessage(
+    phoneNumber,
+    message,
+    sessionId,
+    type = "text",
+    metadata = {}
+  ) {
     try {
       logger.info(`Attempting to send message to ${phoneNumber}`);
       logger.debug(`Message content: ${message}`);
@@ -46,7 +52,8 @@ class WhatsAppService {
 
       // Log the outgoing message
       await logMessage({
-        business_id: this.phoneNumberId, // Use phone_number_id as business_id
+        business_id: this.phoneNumberId,
+        session_id: sessionId,
         phone_number: phoneNumber,
         message_direction: "outgoing",
         message_text:
@@ -70,6 +77,7 @@ class WhatsAppService {
       // Log the failed message attempt
       await logMessage({
         business_id: this.phoneNumberId,
+        session_id: sessionId,
         phone_number: phoneNumber,
         message_direction: "outgoing",
         message_text:
