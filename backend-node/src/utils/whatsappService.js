@@ -5,8 +5,8 @@ class WhatsAppService {
   constructor() {
     this.apiVersion = process.env.WHATSAPP_API_VERSION || "v18.0";
     this.baseUrl = `https://graph.facebook.com/${this.apiVersion}`;
-    this.phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    this.accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+    this.phoneNumberId = process.env.PHONE_NUMBER_ID;
+    this.accessToken = process.env.ACCESS_TOKEN;
   }
 
   async sendMessage(phoneNumber, message, type = "text", metadata = {}) {
