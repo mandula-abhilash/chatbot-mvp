@@ -31,9 +31,13 @@ export const handleWebhook = async (req, res) => {
     // Log detailed request information
     logger.info("Received webhook POST request");
     logger.info("Request headers:", req.headers);
-    logger.info("Request body:", JSON.stringify(req.body, null, 2));
 
     const { object, entry } = req.body;
+
+    // Log the entire webhook payload for debugging
+    logger.info("Webhook Payload Details:");
+    logger.info(`Object Type: ${object}`);
+    logger.info("Entry Data:", JSON.stringify(entry, null, 2));
 
     if (!object || !entry) {
       logger.warn("Invalid webhook payload - missing object or entry");
@@ -50,7 +54,8 @@ export const handleWebhook = async (req, res) => {
     logger.info(`Processing ${entry.length} entries`);
 
     for (const entryData of entry) {
-      logger.info("Processing entry:", JSON.stringify(entryData, null, 2));
+      // Log the WhatsApp Business Account ID
+      logger.info(`WhatsApp Business Account ID: ${entryData.id}`);
 
       if (!entryData.changes) {
         logger.warn("Entry missing changes array");
@@ -58,19 +63,21 @@ export const handleWebhook = async (req, res) => {
       }
 
       for (const change of entryData.changes) {
-        logger.info("Processing change:", JSON.stringify(change, null, 2));
-
         if (!change.value || !change.value.messages) {
           logger.warn("Change missing value or messages");
           continue;
         }
 
         for (const message of change.value.messages) {
-          logger.info("Processing message:", JSON.stringify(message, null, 2));
-
           const phoneNumber = message.from;
           const messageText = message.text?.body;
           const businessId = entryData.id;
+
+          // Log detailed message information
+          logger.info("Message Details:");
+          logger.info(`- Business ID: ${businessId}`);
+          logger.info(`- From Phone: ${phoneNumber}`);
+          logger.info(`- Message: ${messageText}`);
 
           if (!phoneNumber || !messageText || !businessId) {
             logger.warn(
@@ -80,11 +87,6 @@ export const handleWebhook = async (req, res) => {
             continue;
           }
 
-          logger.info(
-            `Processing message from ${phoneNumber}: ${messageText} ` +
-              `for business ${businessId}`
-          );
-
           try {
             await processIncomingMessage(phoneNumber, messageText, businessId);
             logger.info(`Successfully processed message from ${phoneNumber}`);
@@ -93,7 +95,6 @@ export const handleWebhook = async (req, res) => {
               `Failed to process message from ${phoneNumber}:`,
               error
             );
-            // Don't throw here, continue processing other messages
           }
         }
       }
