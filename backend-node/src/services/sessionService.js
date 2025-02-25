@@ -51,6 +51,10 @@ export const processIncomingMessage = async (
           "\n"
         )}`;
         await whatsappService.sendMessage(phoneNumber, greetingMessage);
+      } else {
+        // Send a default greeting if no custom greeting is found
+        const defaultGreeting = "Hello! How can I assist you today?";
+        await whatsappService.sendMessage(phoneNumber, defaultGreeting);
       }
     } else {
       // Update existing session with last message
