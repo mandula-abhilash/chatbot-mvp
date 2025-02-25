@@ -74,7 +74,8 @@ export const processIncomingMessage = async (
         await whatsappService.sendMessage(
           phoneNumber,
           greetingMessage,
-          session.id
+          session.id,
+          businessId
         );
         logger.info(`Greeting message sent to ${phoneNumber}`);
       } catch (error) {
@@ -86,7 +87,8 @@ export const processIncomingMessage = async (
         await whatsappService.sendMessage(
           phoneNumber,
           "Thank you for your message. I'll help you with that.",
-          session.id
+          session.id,
+          businessId
         );
         logger.info(`Acknowledgment sent to ${phoneNumber}`);
       } catch (error) {

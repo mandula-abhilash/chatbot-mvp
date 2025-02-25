@@ -17,26 +17,17 @@ class WhatsAppService {
     `);
   }
 
-  async sendMessage(
-    phoneNumber,
-    message,
-    sessionId,
-    type = "text",
-    metadata = {}
-  ) {
+  async sendMessage(phoneNumber, message, sessionId, businessId) {
+    const payload = {
+      messaging_product: "whatsapp",
+      to: phoneNumber,
+      text: { body: message },
+    };
+
+    logger.info(`Attempting to send message to ${phoneNumber}`);
+    logger.debug(`Request payload: ${JSON.stringify(payload)}`);
+
     try {
-      logger.info(`Attempting to send message to ${phoneNumber}`);
-      logger.debug(`Message content: ${message}`);
-
-      if (!this.accessToken || !this.phoneNumberId) {
-        throw new Error(
-          "WhatsApp configuration missing. Check ACCESS_TOKEN and PHONE_NUMBER_ID environment variables."
-        );
-      }
-
-      const payload = this._createMessagePayload(phoneNumber, message, type);
-      logger.debug(`Request payload: ${JSON.stringify(payload)}`);
-
       const response = await axios.post(
         `${this.baseUrl}/${this.phoneNumberId}/messages`,
         payload,
@@ -48,83 +39,46 @@ class WhatsAppService {
         }
       );
 
-      logger.info(`WhatsApp API Response: ${JSON.stringify(response.data)}`);
+      logger.info(`WhatsApp API response: ${JSON.stringify(response.data)}`);
 
-      // Log the outgoing message
+      // Log the successful outgoing message
       await logMessage({
-        business_id: this.phoneNumberId,
+        business_id: businessId,
         session_id: sessionId,
         phone_number: phoneNumber,
         message_direction: "outgoing",
-        message_text:
-          typeof message === "string" ? message : JSON.stringify(message),
-        message_type: type,
+        message_text: message,
+        message_type: "text",
         message_status: "sent",
-        metadata: {
-          ...metadata,
-          whatsapp_message_id: response.data?.messages?.[0]?.id,
-        },
+        metadata: response.data,
       });
 
-      logger.info(`Message sent successfully to ${phoneNumber}`);
       return response.data;
     } catch (error) {
       logger.error(
-        `Error sending WhatsApp message to ${phoneNumber}:`,
-        error.response?.data || error.message
+        `HTTP error sending message to ${phoneNumber}: ${error.message}`
       );
+      if (error.response) {
+        logger.error(
+          `Response content: ${JSON.stringify(error.response.data)}`
+        );
+      }
 
       // Log the failed message attempt
       await logMessage({
-        business_id: this.phoneNumberId,
+        business_id: businessId,
         session_id: sessionId,
         phone_number: phoneNumber,
         message_direction: "outgoing",
-        message_text:
-          typeof message === "string" ? message : JSON.stringify(message),
-        message_type: type,
+        message_text: message,
+        message_type: "text",
         message_status: "failed",
         metadata: {
-          ...metadata,
           error: error.response?.data || error.message,
         },
       });
 
       throw error;
-    }
-  }
-
-  _createMessagePayload(phoneNumber, message, type) {
-    const basePayload = {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: phoneNumber,
-    };
-
-    switch (type) {
-      case "text":
-        return {
-          ...basePayload,
-          type: "text",
-          text: { body: message },
-        };
-
-      case "interactive":
-        return {
-          ...basePayload,
-          type: "interactive",
-          interactive: message,
-        };
-
-      case "template":
-        return {
-          ...basePayload,
-          type: "template",
-          template: message,
-        };
-
-      default:
-        throw new Error(`Unsupported message type: ${type}`);
     }
   }
 }
