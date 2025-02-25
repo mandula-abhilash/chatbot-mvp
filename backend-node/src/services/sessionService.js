@@ -6,7 +6,8 @@ import {
   logMessage,
 } from "../models/sessionModel.js";
 import { getBusinessGreeting } from "../models/businessGreetingModel.js";
-import whatsappService from "../utils/whatsappService.js";
+import whatsappService from "./whatsappService.js";
+import logger from "../utils/logger.js";
 
 const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
@@ -60,7 +61,7 @@ export const processIncomingMessage = async (
 
     return session;
   } catch (error) {
-    console.error("Error processing incoming message:", error);
+    logger.error("Error processing incoming message:", error);
     throw error;
   }
 };

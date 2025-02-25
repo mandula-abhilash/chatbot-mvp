@@ -1,5 +1,6 @@
 import axios from "axios";
 import { logMessage } from "../models/sessionModel.js";
+import logger from "../utils/logger.js";
 
 class WhatsAppService {
   constructor() {
@@ -35,9 +36,10 @@ class WhatsAppService {
         metadata,
       });
 
+      logger.info(`Message sent successfully to ${phoneNumber}`);
       return response.data;
     } catch (error) {
-      console.error(
+      logger.error(
         "Error sending WhatsApp message:",
         error.response?.data || error
       );
