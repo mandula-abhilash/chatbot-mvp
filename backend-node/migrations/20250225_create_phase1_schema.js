@@ -156,7 +156,7 @@ export async function up(knex) {
       .notNullable();
     table.string("phone_number", 20).notNullable();
     table.enum("message_direction", ["incoming", "outgoing"]).notNullable();
-    table.text("message_text").notNullable();
+    table.string("wamid", 255).notNullable().unique();
     table
       .enum("message_type", [
         "text",
