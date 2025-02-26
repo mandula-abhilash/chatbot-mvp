@@ -8,6 +8,7 @@ import {
 import { getBusinessGreeting } from "../models/businessGreetingModel.js";
 import { getBusinessById } from "../models/businessModel.js";
 import { sendMessage } from "./whatsappService.js";
+import { detectIntent } from "./intentDetectionService.js";
 import logger from "../utils/logger.js";
 
 const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -101,6 +102,29 @@ export const processIncomingMessage = async (
         logger.error(`Failed to send greeting message: ${error.message}`);
       }
     } else {
+      // Detect intent for the incoming message
+      const intent = await detectIntent(message, {
+        businessId,
+        sessionId: session.id,
+      });
+      logger.info(`Detected intent: ${intent} for message: ${message}`);
+
+      // Store the intent in the session context
+      const context = {
+        ...session.context,
+        lastIntent: intent,
+        lastMessage: message,
+      };
+
+      // Update session with the new context
+      await updateSession(session.id, {
+        last_message: message,
+        context,
+        updated_at: new Date(),
+      });
+
+      // For now, just acknowledge the message and log the intent
+      // Later, we'll implement the actual handlers for each intent
       try {
         await sendMessage(
           phoneNumber,
@@ -113,12 +137,6 @@ export const processIncomingMessage = async (
         logger.error(`Failed to send acknowledgment: ${error.message}`);
       }
     }
-
-    await updateSession(session.id, {
-      last_message: message,
-      updated_at: new Date(),
-    });
-    logger.info(`Session updated with last message`);
 
     return session;
   } catch (error) {
