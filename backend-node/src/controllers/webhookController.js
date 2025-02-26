@@ -7,7 +7,6 @@ export const verifyWebhook = (req, res) => {
     const token = req.query["hub.verify_token"];
     const challenge = req.query["hub.challenge"];
 
-    // Log query parameters
     logger.info(
       `Received Webhook Verification Request: hub_mode=${mode}, ` +
         `hub_verify_token=${token}, hub_challenge=${challenge}`
@@ -28,13 +27,11 @@ export const verifyWebhook = (req, res) => {
 
 export const handleWebhook = async (req, res) => {
   try {
-    // Log detailed request information
     logger.info("Received webhook POST request");
     logger.info("Request headers:", req.headers);
 
     const { object, entry } = req.body;
 
-    // Log the entire webhook payload for debugging
     logger.info("Webhook Payload Details:");
     logger.info(`Object Type: ${object}`);
     logger.info("Entry Data:", JSON.stringify(entry, null, 2));
@@ -54,7 +51,6 @@ export const handleWebhook = async (req, res) => {
     logger.info(`Processing ${entry.length} entries`);
 
     for (const entryData of entry) {
-      // Log the WhatsApp Business Account ID
       logger.info(`WhatsApp Business Account ID: ${entryData.id}`);
 
       if (!entryData.changes) {
@@ -74,17 +70,15 @@ export const handleWebhook = async (req, res) => {
           const businessId = entryData.id;
           const wamid = message.id;
 
-          // Log detailed message information
           logger.info("Message Details:");
           logger.info(`- Business ID: ${businessId}`);
           logger.info(`- From Phone: ${phoneNumber}`);
-          logger.info(`- Message: ${messageText}`);
           logger.info(`- WAMID: ${wamid}`);
 
-          if (!phoneNumber || !messageText || !businessId || !wamid) {
+          if (!phoneNumber || !wamid || !businessId) {
             logger.warn(
               `Missing required message data: phone=${phoneNumber}, ` +
-                `text=${messageText}, businessId=${businessId}, wamid=${wamid}`
+                `wamid=${wamid}, businessId=${businessId}`
             );
             continue;
           }

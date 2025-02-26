@@ -7,7 +7,6 @@ const baseUrl = `https://graph.facebook.com/${apiVersion}`;
 const phoneNumberId = process.env.PHONE_NUMBER_ID;
 const accessToken = process.env.ACCESS_TOKEN;
 
-// Log configuration on startup
 logger.info(`WhatsApp Service initialized with:
   API Version: ${apiVersion}
   Phone Number ID: ${phoneNumberId}
@@ -43,7 +42,7 @@ export const sendMessage = async (
 
     logger.info(`WhatsApp API response: ${JSON.stringify(response.data)}`);
 
-    // Log the successful outgoing message with wamid from response
+    // Log the message with its WhatsApp message ID
     await logMessage({
       business_id: businessId,
       session_id: sessionId,
@@ -52,7 +51,7 @@ export const sendMessage = async (
       wamid: response.data.messages[0].id,
       message_type: "text",
       message_status: "sent",
-      metadata: { text: message, ...response.data },
+      metadata: { ...response.data },
     });
 
     return response.data;
@@ -64,12 +63,10 @@ export const sendMessage = async (
       logger.error(`Response content: ${JSON.stringify(error.response.data)}`);
     }
 
-    // Generate a temporary WAMID for failed messages
+    // Log failed message attempt with a temporary ID
     const tempWamid = `failed_${Date.now()}_${Math.random()
       .toString(36)
       .substr(2, 9)}`;
-
-    // Log the failed message attempt
     await logMessage({
       business_id: businessId,
       session_id: sessionId,
@@ -79,7 +76,6 @@ export const sendMessage = async (
       message_type: "text",
       message_status: "failed",
       metadata: {
-        text: message,
         error: error.response?.data || error.message,
       },
     });

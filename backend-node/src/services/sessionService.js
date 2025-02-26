@@ -29,21 +29,17 @@ export const processIncomingMessage = async (
       `Processing message from ${phoneNumber} for business ${businessId}`
     );
 
-    // First get or create session
     let session = await getActiveSession(phoneNumber, businessId);
     logger.info(`Existing session found: ${session ? "yes" : "no"}`);
 
-    // Check if message is "Accepted" to close session
-    if (message.toLowerCase() === "accepted" && session) {
+    if (message?.toLowerCase() === "accepted" && session) {
       await closeSession(session.id);
       logger.info(`Session ${session.id} closed`);
       return;
     }
 
-    // If no active session or session expired, create new one
     if (!session || isSessionExpired(session)) {
       if (session) {
-        // Send timeout message before closing the session
         try {
           await sendMessage(
             phoneNumber,
@@ -60,12 +56,11 @@ export const processIncomingMessage = async (
         logger.info(`Expired session ${session.id} closed`);
       }
 
-      // Create a new session for any incoming message
       session = await createSession(phoneNumber, businessId);
       logger.info(`New session created: ${session.id}`);
     }
 
-    // Now that we have a valid session, log the incoming message
+    // Log the incoming message with its WhatsApp message ID
     await logMessage({
       business_id: businessId,
       session_id: session.id,
@@ -74,11 +69,10 @@ export const processIncomingMessage = async (
       wamid: wamid,
       message_type: "text",
       message_status: "received",
-      metadata: { text: message },
+      metadata: {},
     });
     logger.info(`Incoming message logged`);
 
-    // If this was a new session, send the greeting
     if (!session.last_message) {
       const [greeting, business] = await Promise.all([
         getBusinessGreeting(businessId),
@@ -89,7 +83,6 @@ export const processIncomingMessage = async (
       let greetingMessage;
       if (greeting && business) {
         greetingMessage = `*Welcome to ${business.name}!* 🌟\n\n${greeting.greeting_message}\n\n*Example questions you can ask:*\n`;
-        // Add each example question as a bullet point
         greetingMessage += greeting.example_questions
           .map((q) => ` • _${q}_`)
           .join("\n");
@@ -108,7 +101,6 @@ export const processIncomingMessage = async (
         logger.error(`Failed to send greeting message: ${error.message}`);
       }
     } else {
-      // For existing sessions, send a simple acknowledgment
       try {
         await sendMessage(
           phoneNumber,
@@ -122,7 +114,6 @@ export const processIncomingMessage = async (
       }
     }
 
-    // Update existing session with last message and timestamp
     await updateSession(session.id, {
       last_message: message,
       updated_at: new Date(),
