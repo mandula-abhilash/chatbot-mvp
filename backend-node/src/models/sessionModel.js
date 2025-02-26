@@ -59,6 +59,7 @@ export const closeSession = async (sessionId) => {
       .update({
         is_active: false,
         ended_at: db.fn.now(),
+        updated_at: db.fn.now(),
       })
       .returning("*");
 
@@ -71,18 +72,23 @@ export const closeSession = async (sessionId) => {
 
 export const cleanupInactiveSessions = async (timeout) => {
   try {
-    const now = new Date();
-    const cutoffTime = new Date(now - timeout);
+    const cutoffTime = new Date(Date.now() - timeout);
 
+    // Find all active sessions that haven't been updated within the timeout period
     const expiredSessions = await db("user_sessions")
       .where("is_active", true)
       .whereNull("ended_at")
       .where("updated_at", "<=", cutoffTime)
-      .update({
+      .select("*");
+
+    // Close each expired session
+    for (const session of expiredSessions) {
+      await db("user_sessions").where("id", session.id).update({
         is_active: false,
         ended_at: db.fn.now(),
-      })
-      .returning("*");
+        updated_at: db.fn.now(),
+      });
+    }
 
     return expiredSessions;
   } catch (error) {
