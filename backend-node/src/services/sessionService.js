@@ -82,13 +82,15 @@ export const processIncomingMessage = async (
 
       let greetingMessage;
       if (greeting) {
-        greetingMessage = `${
-          greeting.greeting_message
-        }\n\nExample questions you can ask:\n${greeting.example_questions.join(
-          "\n"
-        )}`;
+        greetingMessage = `*Welcome to Our Business!* 🌟\n\n${greeting.greeting_message}\n\n*Example questions you can ask:*\n`;
+        // Add each example question as a bullet point
+        greetingMessage += greeting.example_questions
+          .map((q) => `• _${q}_`)
+          .join("\n");
+        greetingMessage +=
+          "\n\n_Please choose from the examples above or ask your own question._";
       } else {
-        greetingMessage = "Hello! How can I assist you today?";
+        greetingMessage = "*Hello!* 👋\n\nHow can I assist you today?";
       }
 
       try {
@@ -102,7 +104,7 @@ export const processIncomingMessage = async (
       try {
         await sendMessage(
           phoneNumber,
-          "Thank you for your message. I'll help you with that.",
+          "✨ Thank you for your message. I'll help you with that.",
           session.id,
           businessId
         );
