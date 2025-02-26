@@ -6,10 +6,16 @@ import {
   logMessage,
 } from "../models/sessionModel.js";
 import { getBusinessGreeting } from "../models/businessGreetingModel.js";
-import whatsappService from "./whatsappService.js";
+import { sendMessage } from "./whatsappService.js";
 import logger from "../utils/logger.js";
 
 const SESSION_TIMEOUT = 5 * 60 * 1000; // 15 minutes in milliseconds
+
+const isSessionExpired = (session) => {
+  const now = new Date();
+  const lastActivity = new Date(session.updated_at);
+  return now - lastActivity > SESSION_TIMEOUT;
+};
 
 export const processIncomingMessage = async (
   phoneNumber,
@@ -37,9 +43,9 @@ export const processIncomingMessage = async (
       if (session) {
         // Send timeout message before closing the session
         try {
-          await whatsappService.sendMessage(
+          await sendMessage(
             phoneNumber,
-            "Your session has timed out due to inactivity on the channel. CLosing the chat session",
+            "Your session has timed out due to inactivity on the channel. Closing the chat session",
             session.id,
             businessId
           );
@@ -86,12 +92,7 @@ export const processIncomingMessage = async (
       }
 
       try {
-        await whatsappService.sendMessage(
-          phoneNumber,
-          greetingMessage,
-          session.id,
-          businessId
-        );
+        await sendMessage(phoneNumber, greetingMessage, session.id, businessId);
         logger.info(`Greeting message sent to ${phoneNumber}`);
       } catch (error) {
         logger.error(`Failed to send greeting message: ${error.message}`);
@@ -99,7 +100,7 @@ export const processIncomingMessage = async (
     } else {
       // For existing sessions, send a simple acknowledgment
       try {
-        await whatsappService.sendMessage(
+        await sendMessage(
           phoneNumber,
           "Thank you for your message. I'll help you with that.",
           session.id,
@@ -123,10 +124,4 @@ export const processIncomingMessage = async (
     logger.error("Error processing incoming message:", error);
     throw error;
   }
-};
-
-const isSessionExpired = (session) => {
-  const now = new Date();
-  const lastActivity = new Date(session.updated_at);
-  return now - lastActivity > SESSION_TIMEOUT;
 };
