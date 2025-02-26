@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import openai from "openai";
 import logger from "../utils/logger.js";
 
 export const COMMAND_STRINGS = {
