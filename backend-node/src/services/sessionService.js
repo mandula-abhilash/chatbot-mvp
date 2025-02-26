@@ -9,7 +9,7 @@ import { getBusinessGreeting } from "../models/businessGreetingModel.js";
 import whatsappService from "./whatsappService.js";
 import logger from "../utils/logger.js";
 
-const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const SESSION_TIMEOUT = 5 * 60 * 1000; // 15 minutes in milliseconds
 
 export const processIncomingMessage = async (
   phoneNumber,
@@ -35,9 +35,24 @@ export const processIncomingMessage = async (
     // If no active session or session expired, create new one
     if (!session || isSessionExpired(session)) {
       if (session) {
+        // Send timeout message before closing the session
+        try {
+          await whatsappService.sendMessage(
+            phoneNumber,
+            "Your session has timed out due to inactivity on the channel. CLosing the chat session",
+            session.id,
+            businessId
+          );
+          logger.info(`Timeout message sent to ${phoneNumber}`);
+        } catch (error) {
+          logger.error(`Failed to send timeout message: ${error.message}`);
+        }
+
         await closeSession(session.id);
         logger.info(`Expired session ${session.id} closed`);
       }
+
+      // Create a new session for any incoming message
       session = await createSession(phoneNumber, businessId);
       logger.info(`New session created: ${session.id}`);
     }
@@ -96,9 +111,10 @@ export const processIncomingMessage = async (
       }
     }
 
-    // Update existing session with last message
+    // Update existing session with last message and timestamp
     await updateSession(session.id, {
       last_message: message,
+      updated_at: new Date(),
     });
     logger.info(`Session updated with last message`);
 
@@ -111,6 +127,6 @@ export const processIncomingMessage = async (
 
 const isSessionExpired = (session) => {
   const now = new Date();
-  const sessionStart = new Date(session.started_at);
-  return now - sessionStart > SESSION_TIMEOUT;
+  const lastActivity = new Date(session.updated_at);
+  return now - lastActivity > SESSION_TIMEOUT;
 };
