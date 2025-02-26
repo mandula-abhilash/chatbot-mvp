@@ -2,8 +2,8 @@ import logger from "../utils/logger.js";
 import { cleanupInactiveSessions } from "../models/sessionModel.js";
 import { sendMessage } from "./whatsappService.js";
 
-const SESSION_TIMEOUT = 2 * 60 * 1000; // 5 minutes
-const CLEANUP_INTERVAL = 2 * 60 * 1000; // 5 minutes
+const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 let isRunning = false;
 let intervalId = null;

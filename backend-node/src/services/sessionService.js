@@ -9,7 +9,7 @@ import { getBusinessGreeting } from "../models/businessGreetingModel.js";
 import { sendMessage } from "./whatsappService.js";
 import logger from "../utils/logger.js";
 
-const SESSION_TIMEOUT = 2 * 60 * 1000; // 15 minutes in milliseconds
+const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 const isSessionExpired = (session) => {
   const now = new Date();
