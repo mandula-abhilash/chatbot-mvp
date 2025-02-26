@@ -6,6 +6,7 @@ import {
   logMessage,
 } from "../models/sessionModel.js";
 import { getBusinessGreeting } from "../models/businessGreetingModel.js";
+import { getBusinessById } from "../models/businessModel.js";
 import { sendMessage } from "./whatsappService.js";
 import logger from "../utils/logger.js";
 
@@ -77,20 +78,25 @@ export const processIncomingMessage = async (
 
     // If this was a new session, send the greeting
     if (!session.last_message) {
-      const greeting = await getBusinessGreeting(businessId);
-      logger.info(`Fetched greeting for business ${businessId}`);
+      const [greeting, business] = await Promise.all([
+        getBusinessGreeting(businessId),
+        getBusinessById(businessId),
+      ]);
+      logger.info(`Fetched greeting and business info for ${businessId}`);
 
       let greetingMessage;
-      if (greeting) {
-        greetingMessage = `*Welcome to Our Business!* 🌟\n\n${greeting.greeting_message}\n\n*Example questions you can ask:*\n`;
+      if (greeting && business) {
+        greetingMessage = `*Welcome to ${business.name}!* 🌟\n\n${greeting.greeting_message}\n\n*Example questions you can ask:*\n`;
         // Add each example question as a bullet point
         greetingMessage += greeting.example_questions
-          .map((q) => `• _${q}_`)
+          .map((q) => ` • _${q}_`)
           .join("\n");
         greetingMessage +=
           "\n\n_Please choose from the examples above or ask your own question._";
       } else {
-        greetingMessage = "*Hello!* 👋\n\nHow can I assist you today?";
+        greetingMessage = `*Hello!* 👋\n\nWelcome to ${
+          business?.name || "our business"
+        }. How can I assist you today?`;
       }
 
       try {
