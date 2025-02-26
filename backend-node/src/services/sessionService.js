@@ -21,7 +21,8 @@ const isSessionExpired = (session) => {
 export const processIncomingMessage = async (
   phoneNumber,
   message,
-  businessId
+  businessId,
+  wamid
 ) => {
   try {
     logger.info(
@@ -70,9 +71,10 @@ export const processIncomingMessage = async (
       session_id: session.id,
       phone_number: phoneNumber,
       message_direction: "incoming",
-      message_text: message,
+      wamid: wamid,
       message_type: "text",
       message_status: "received",
+      metadata: { text: message },
     });
     logger.info(`Incoming message logged`);
 

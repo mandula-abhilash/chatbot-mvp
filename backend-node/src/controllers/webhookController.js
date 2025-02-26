@@ -72,23 +72,30 @@ export const handleWebhook = async (req, res) => {
           const phoneNumber = message.from;
           const messageText = message.text?.body;
           const businessId = entryData.id;
+          const wamid = message.id;
 
           // Log detailed message information
           logger.info("Message Details:");
           logger.info(`- Business ID: ${businessId}`);
           logger.info(`- From Phone: ${phoneNumber}`);
           logger.info(`- Message: ${messageText}`);
+          logger.info(`- WAMID: ${wamid}`);
 
-          if (!phoneNumber || !messageText || !businessId) {
+          if (!phoneNumber || !messageText || !businessId || !wamid) {
             logger.warn(
               `Missing required message data: phone=${phoneNumber}, ` +
-                `text=${messageText}, businessId=${businessId}`
+                `text=${messageText}, businessId=${businessId}, wamid=${wamid}`
             );
             continue;
           }
 
           try {
-            await processIncomingMessage(phoneNumber, messageText, businessId);
+            await processIncomingMessage(
+              phoneNumber,
+              messageText,
+              businessId,
+              wamid
+            );
             logger.info(`Successfully processed message from ${phoneNumber}`);
           } catch (error) {
             logger.error(

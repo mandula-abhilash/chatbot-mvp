@@ -43,16 +43,16 @@ export const sendMessage = async (
 
     logger.info(`WhatsApp API response: ${JSON.stringify(response.data)}`);
 
-    // Log the successful outgoing message
+    // Log the successful outgoing message with wamid from response
     await logMessage({
       business_id: businessId,
       session_id: sessionId,
       phone_number: phoneNumber,
       message_direction: "outgoing",
-      message_text: message,
+      wamid: response.data.messages[0].id,
       message_type: "text",
       message_status: "sent",
-      metadata: response.data,
+      metadata: { text: message, ...response.data },
     });
 
     return response.data;
@@ -64,16 +64,22 @@ export const sendMessage = async (
       logger.error(`Response content: ${JSON.stringify(error.response.data)}`);
     }
 
+    // Generate a temporary WAMID for failed messages
+    const tempWamid = `failed_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+
     // Log the failed message attempt
     await logMessage({
       business_id: businessId,
       session_id: sessionId,
       phone_number: phoneNumber,
       message_direction: "outgoing",
-      message_text: message,
+      wamid: tempWamid,
       message_type: "text",
       message_status: "failed",
       metadata: {
+        text: message,
         error: error.response?.data || error.message,
       },
     });
