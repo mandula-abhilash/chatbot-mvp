@@ -31,6 +31,7 @@ export const processIncomingMessage = async (
     );
 
     let session = await getActiveSession(phoneNumber, businessId);
+    let isNewSession = false;
     logger.info(`Existing session found: ${session ? "yes" : "no"}`);
 
     if (message?.toLowerCase() === "accepted" && session) {
@@ -58,6 +59,7 @@ export const processIncomingMessage = async (
       }
 
       session = await createSession(phoneNumber, businessId);
+      isNewSession = true;
       logger.info(`New session created: ${session.id}`);
     }
 
@@ -74,7 +76,30 @@ export const processIncomingMessage = async (
     });
     logger.info(`Incoming message logged`);
 
-    if (!session.last_message) {
+    // Always detect intent for every message
+    const intent = await detectIntent(message, {
+      businessId,
+      sessionId: session.id,
+    });
+    logger.info(`Detected intent: ${intent} for message: ${message}`);
+
+    // Store the intent in the session context
+    const context = {
+      ...session.context,
+      lastIntent: intent,
+      lastMessage: message,
+    };
+
+    // Update session with the new context
+    await updateSession(session.id, {
+      last_message: message,
+      context,
+      updated_at: new Date(),
+    });
+    logger.info(`Session updated with intent: ${intent}`);
+
+    // Only send greeting message for new sessions
+    if (isNewSession) {
       const [greeting, business] = await Promise.all([
         getBusinessGreeting(businessId),
         getBusinessById(businessId),
@@ -102,39 +127,19 @@ export const processIncomingMessage = async (
         logger.error(`Failed to send greeting message: ${error.message}`);
       }
     } else {
-      // Detect intent for the incoming message
-      const intent = await detectIntent(message, {
-        businessId,
-        sessionId: session.id,
-      });
-      logger.info(`Detected intent: ${intent} for message: ${message}`);
-
-      // Store the intent in the session context
-      const context = {
-        ...session.context,
-        lastIntent: intent,
-        lastMessage: message,
-      };
-
-      // Update session with the new context
-      await updateSession(session.id, {
-        last_message: message,
-        context,
-        updated_at: new Date(),
-      });
-
-      // For now, just acknowledge the message and log the intent
-      // Later, we'll implement the actual handlers for each intent
+      // For existing sessions, send a response based on the detected intent
       try {
+        // For now, just acknowledge the message
+        // Later, we'll implement specific handlers for each intent type
         await sendMessage(
           phoneNumber,
-          "✨ Thank you for your message. I'll help you with that.",
+          `✨ Thank you for your message. I'll help you with that. (Intent: ${intent})`,
           session.id,
           businessId
         );
-        logger.info(`Acknowledgment sent to ${phoneNumber}`);
+        logger.info(`Response sent to ${phoneNumber} for intent: ${intent}`);
       } catch (error) {
-        logger.error(`Failed to send acknowledgment: ${error.message}`);
+        logger.error(`Failed to send response: ${error.message}`);
       }
     }
 
