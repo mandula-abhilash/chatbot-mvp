@@ -69,6 +69,28 @@ export const closeSession = async (sessionId) => {
   }
 };
 
+export const cleanupInactiveSessions = async (timeout) => {
+  try {
+    const now = new Date();
+    const cutoffTime = new Date(now - timeout);
+
+    const expiredSessions = await db("user_sessions")
+      .where("is_active", true)
+      .whereNull("ended_at")
+      .where("updated_at", "<=", cutoffTime)
+      .update({
+        is_active: false,
+        ended_at: db.fn.now(),
+      })
+      .returning("*");
+
+    return expiredSessions;
+  } catch (error) {
+    console.error("Error cleaning up inactive sessions:", error);
+    throw error;
+  }
+};
+
 export const logMessage = async (messageData) => {
   try {
     const [message] = await db("whatsapp_messages")
