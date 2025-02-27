@@ -1,5 +1,10 @@
-import openai from "openai";
+import OpenAI from "openai";
 import logger from "../utils/logger.js";
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export const COMMAND_STRINGS = {
   BUILD_SQL: "build_sql",
@@ -77,6 +82,12 @@ export const detectIntent = async (message, businessContext = {}) => {
     - Prioritize customer service excellence by determining the most helpful response path
     - If there's any hint of malicious intent, classify as 'potential_security_threat'
     - If the query mentions appointments, registration, or orders, favor 'suggest_whatsapp_flow'`;
+
+    // Check if OpenAI API key is available
+    if (!process.env.OPENAI_API_KEY) {
+      logger.error("OpenAI API key is missing");
+      return COMMAND_STRINGS.UNCLEAR_QUERY;
+    }
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -167,16 +178,20 @@ export const processCommand = async (
 // These function stubs would be implemented separately
 const queryBusinessDatabase = async (message, businessContext) => {
   // Implementation for SQL query generation and execution
+  return "I'll look that up in our database for you.";
 };
 
 const searchEmbeddings = async (message, businessContext) => {
   // Implementation for semantic search against embeddings
+  return "Let me search for that information for you.";
 };
 
 const triggerWhatsAppFlow = async (message, businessContext) => {
   // Implementation for WhatsApp flow suggestion
+  return "I can help you with that request. Let me guide you through the process.";
 };
 
 const getFAQResponse = async (message, businessContext) => {
   // Implementation for FAQ matching
+  return "Here's the information you requested from our FAQ.";
 };
