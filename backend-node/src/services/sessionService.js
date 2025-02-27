@@ -8,7 +8,7 @@ import {
 import { getBusinessGreeting } from "../models/businessGreetingModel.js";
 import { getBusinessById } from "../models/businessModel.js";
 import { sendMessage } from "./whatsappService.js";
-import { detectIntent } from "./intentDetectionService.js";
+import { detectIntent, COMMAND_STRINGS } from "./intentDetectionService.js";
 import logger from "../utils/logger.js";
 
 const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -17,6 +17,31 @@ const isSessionExpired = (session) => {
   const now = new Date();
   const lastActivity = new Date(session.updated_at);
   return now - lastActivity > SESSION_TIMEOUT;
+};
+
+/**
+ * Generate response based on detected intent
+ * @param {string} intent - The detected intent
+ * @param {string} message - The user's message
+ * @returns {string} - Response message to send
+ */
+const generateResponseForIntent = (intent, message) => {
+  switch (intent) {
+    case COMMAND_STRINGS.POTENTIAL_SECURITY_THREAT:
+      // Log the potential threat and return safe response
+      logger.warn(`Potential security threat detected: ${message}`);
+      return "I'm unable to process your request at this time. If you need assistance, please try rephrasing your question.";
+
+    case COMMAND_STRINGS.IRRELEVANT_QUERY:
+      return "I'm specialized in helping with questions about our business, services, and products. I don't have information about topics outside this scope. Is there something specific about our business I can help you with?";
+
+    case COMMAND_STRINGS.UNCLEAR_QUERY:
+      return "I'm not sure I fully understand your question. Could you provide more details about what you're looking for?";
+
+    default:
+      // For other intents, we'll implement specific handlers later
+      return `Thank you for your message. I'm working on finding the information you need.`;
+  }
 };
 
 export const processIncomingMessage = async (
@@ -127,16 +152,10 @@ export const processIncomingMessage = async (
         logger.error(`Failed to send greeting message: ${error.message}`);
       }
     } else {
-      // For existing sessions, send a response based on the detected intent
+      // For existing sessions, generate and send a response based on the detected intent
       try {
-        // For now, just acknowledge the message
-        // Later, we'll implement specific handlers for each intent type
-        await sendMessage(
-          phoneNumber,
-          `✨ Thank you for your message. I'll help you with that. (Intent: ${intent})`,
-          session.id,
-          businessId
-        );
+        const responseMessage = generateResponseForIntent(intent, message);
+        await sendMessage(phoneNumber, responseMessage, session.id, businessId);
         logger.info(`Response sent to ${phoneNumber} for intent: ${intent}`);
       } catch (error) {
         logger.error(`Failed to send response: ${error.message}`);
