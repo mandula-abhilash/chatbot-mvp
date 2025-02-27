@@ -8,7 +8,12 @@ import {
 import { getBusinessGreeting } from "../models/businessGreetingModel.js";
 import { getBusinessById } from "../models/businessModel.js";
 import { sendMessage } from "./whatsappService.js";
-import { detectIntent, COMMAND_STRINGS } from "./intentDetectionService.js";
+import {
+  detectIntent,
+  COMMAND_STRINGS,
+  processCommand,
+} from "./intentDetectionService.js";
+import { getSqlQueryResult } from "./sqlQueryService.js";
 import logger from "../utils/logger.js";
 
 const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
@@ -23,24 +28,84 @@ const isSessionExpired = (session) => {
  * Generate response based on detected intent
  * @param {string} intent - The detected intent
  * @param {string} message - The user's message
- * @returns {string} - Response message to send
+ * @param {Object} businessContext - Business context information
+ * @returns {Promise<string>} - Response message to send
  */
-const generateResponseForIntent = (intent, message) => {
-  switch (intent) {
-    case COMMAND_STRINGS.POTENTIAL_SECURITY_THREAT:
-      // Log the potential threat and return safe response
-      logger.warn(`Potential security threat detected: ${message}`);
-      return "I'm unable to process your request at this time. If you need assistance, please try rephrasing your question.";
+const generateResponseForIntent = async (intent, message, businessContext) => {
+  try {
+    logger.info(
+      `Generating response for intent: ${intent}, message: ${message}`
+    );
 
-    case COMMAND_STRINGS.IRRELEVANT_QUERY:
-      return "I'm specialized in helping with questions about our business, services, and products. I don't have information about topics outside this scope. Is there something specific about our business I can help you with?";
+    switch (intent) {
+      case COMMAND_STRINGS.BUILD_SQL:
+        // Use the SQL query service to get a response from the database
+        logger.info(`Using SQL query service for message: ${message}`);
+        const sqlResponse = await getSqlQueryResult(
+          message,
+          [
+            "businesses",
+            "business_hours",
+            "business_services",
+            "business_faqs",
+          ],
+          5
+        );
+        logger.info(`SQL query response: ${sqlResponse}`);
+        return sqlResponse;
 
-    case COMMAND_STRINGS.UNCLEAR_QUERY:
-      return "I'm not sure I fully understand your question. Could you provide more details about what you're looking for?";
+      case COMMAND_STRINGS.GENERATE_EMBEDDINGS:
+        // For now, provide a placeholder response
+        // TODO: Implement vector search when available
+        return `Thank you for your question about "${message}". I'm searching our knowledge base for the most relevant information.`;
 
-    default:
-      // For other intents, we'll implement specific handlers later
-      return `Thank you for your message. I'm working on finding the information you need.`;
+      case COMMAND_STRINGS.SUGGEST_WHATSAPP_FLOW:
+        // Handle appointment booking, registration, etc.
+        if (
+          message.toLowerCase().includes("appointment") ||
+          message.toLowerCase().includes("book") ||
+          message.toLowerCase().includes("schedule")
+        ) {
+          return "I'd be happy to help you book an appointment. Please provide your preferred date and time, and I'll check our availability.";
+        } else if (
+          message.toLowerCase().includes("register") ||
+          message.toLowerCase().includes("sign up")
+        ) {
+          return "To register for our services, I'll need some information from you. Could you please provide your name and email address?";
+        } else {
+          return "I can help you with that request. Could you please provide more specific details about what you're looking for?";
+        }
+
+      case COMMAND_STRINGS.FETCH_FAQ:
+        // Use SQL query service to find matching FAQs
+        logger.info(`Searching FAQs for: ${message}`);
+        const faqQuery = `Find a FAQ that answers: ${message}`;
+        const faqResponse = await getSqlQueryResult(
+          faqQuery,
+          ["business_faqs"],
+          1
+        );
+        logger.info(`FAQ response: ${faqResponse}`);
+        return faqResponse;
+
+      case COMMAND_STRINGS.POTENTIAL_SECURITY_THREAT:
+        // Log the potential threat and return safe response
+        logger.warn(`Potential security threat detected: ${message}`);
+        return "I'm unable to process your request at this time. If you need assistance, please try rephrasing your question.";
+
+      case COMMAND_STRINGS.IRRELEVANT_QUERY:
+        return "I'm specialized in helping with questions about our business, services, and products. I don't have information about topics outside this scope. Is there something specific about our business I can help you with?";
+
+      case COMMAND_STRINGS.UNCLEAR_QUERY:
+        return "I'm not sure I fully understand your question. Could you provide more details about what you're looking for?";
+
+      default:
+        // For other intents, we'll implement specific handlers later
+        return `Thank you for your message. I'm working on finding the information you need.`;
+    }
+  } catch (error) {
+    logger.error(`Error generating response for intent ${intent}:`, error);
+    return "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.";
   }
 };
 
@@ -154,7 +219,20 @@ export const processIncomingMessage = async (
     } else {
       // For existing sessions, generate and send a response based on the detected intent
       try {
-        const responseMessage = generateResponseForIntent(intent, message);
+        // Create business context for response generation
+        const businessContext = {
+          businessId,
+          sessionId: session.id,
+          phoneNumber,
+          context: session.context,
+        };
+
+        // Generate response using the enhanced function
+        const responseMessage = await generateResponseForIntent(
+          intent,
+          message,
+          businessContext
+        );
         await sendMessage(phoneNumber, responseMessage, session.id, businessId);
         logger.info(`Response sent to ${phoneNumber} for intent: ${intent}`);
       } catch (error) {
