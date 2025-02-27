@@ -17,7 +17,7 @@ export const COMMAND_STRINGS = {
  * Detects user intent from message content and returns appropriate command string
  * @param {string} message - User message
  * @param {Object} businessContext - Business-specific metadata to help with classification
- * @returns {Promise<string>} - Command string for next processing step
+ * @returns {Promise<Object>} - Intent detection result with command string and relevant tables
  */
 export const detectIntent = async (message, businessContext = {}) => {
   try {
@@ -42,11 +42,15 @@ Message: ${message}`;
 
     // Extract the intent from the result
     const intent = result.intent;
+    const relevantTables = result.relevant_tables || [];
 
     // Validate the intent is one of our expected values
     if (!Object.values(COMMAND_STRINGS).includes(intent)) {
       logger.warn(`Invalid intent received from OpenAI: ${intent}`);
-      return COMMAND_STRINGS.UNCLEAR_QUERY;
+      return {
+        intent: COMMAND_STRINGS.UNCLEAR_QUERY,
+        relevantTables: [],
+      };
     }
 
     // Log confidence and reasoning if available
@@ -58,12 +62,25 @@ Message: ${message}`;
       logger.info(`Intent reasoning: ${result.reasoning}`);
     }
 
+    // Log relevant tables if available
+    if (relevantTables && relevantTables.length > 0) {
+      logger.info(`Relevant tables: ${relevantTables.join(", ")}`);
+    }
+
     logger.info(`Detected intent: ${intent} for message: ${message}`);
-    return intent;
+
+    // Return both the intent and relevant tables
+    return {
+      intent,
+      relevantTables,
+    };
   } catch (error) {
     logger.error("Error detecting intent:", error);
     // Default to unclear query if there's an error
-    return COMMAND_STRINGS.UNCLEAR_QUERY;
+    return {
+      intent: COMMAND_STRINGS.UNCLEAR_QUERY,
+      relevantTables: [],
+    };
   }
 };
 

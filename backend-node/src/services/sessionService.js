@@ -29,28 +29,32 @@ const isSessionExpired = (session) => {
  * @param {string} intent - The detected intent
  * @param {string} message - The user's message
  * @param {Object} businessContext - Business context information
+ * @param {Array} relevantTables - Relevant database tables for the query
  * @returns {Promise<string>} - Response message to send
  */
-const generateResponseForIntent = async (intent, message, businessContext) => {
+const generateResponseForIntent = async (
+  intent,
+  message,
+  businessContext,
+  relevantTables = []
+) => {
   try {
     logger.info(
       `Generating response for intent: ${intent}, message: ${message}`
     );
+    logger.info(
+      `Using relevant tables: ${relevantTables.join(", ") || "none specified"}`
+    );
 
     switch (intent) {
       case COMMAND_STRINGS.BUILD_SQL:
-        // Use the SQL query service to get a response from the database
-        logger.info(`Using SQL query service for message: ${message}`);
-        const sqlResponse = await getSqlQueryResult(
-          message,
-          [
-            "businesses",
-            "business_hours",
-            "business_services",
-            "business_faqs",
-          ],
-          5
+        // Use the SQL query service with the tables identified by the intent detection
+        logger.info(
+          `Using SQL query service for message: ${message} with tables: ${relevantTables.join(
+            ", "
+          )}`
         );
+        const sqlResponse = await getSqlQueryResult(message, relevantTables, 5);
         logger.info(`SQL query response: ${sqlResponse}`);
         return sqlResponse;
 
@@ -82,7 +86,7 @@ const generateResponseForIntent = async (intent, message, businessContext) => {
         const faqQuery = `Find a FAQ that answers: ${message}`;
         const faqResponse = await getSqlQueryResult(
           faqQuery,
-          ["business_faqs"],
+          relevantTables.length > 0 ? relevantTables : ["business_faqs"],
           1
         );
         logger.info(`FAQ response: ${faqResponse}`);
@@ -167,17 +171,24 @@ export const processIncomingMessage = async (
     logger.info(`Incoming message logged`);
 
     // Always detect intent for every message
-    const intent = await detectIntent(message, {
+    const intentResult = await detectIntent(message, {
       businessId,
       sessionId: session.id,
     });
-    logger.info(`Detected intent: ${intent} for message: ${message}`);
 
-    // Store the intent in the session context
+    // Extract intent and relevant tables from the result
+    const intent = intentResult.intent;
+    const relevantTables = intentResult.relevantTables || [];
+
+    logger.info(`Detected intent: ${intent} for message: ${message}`);
+    logger.info(`Relevant tables: ${relevantTables.join(", ") || "none"}`);
+
+    // Store the intent and relevant tables in the session context
     const context = {
       ...session.context,
       lastIntent: intent,
       lastMessage: message,
+      relevantTables: relevantTables,
     };
 
     // Update session with the new context
@@ -227,12 +238,14 @@ export const processIncomingMessage = async (
           context: session.context,
         };
 
-        // Generate response using the enhanced function
+        // Generate response using the enhanced function with relevant tables
         const responseMessage = await generateResponseForIntent(
           intent,
           message,
-          businessContext
+          businessContext,
+          relevantTables
         );
+
         await sendMessage(phoneNumber, responseMessage, session.id, businessId);
         logger.info(`Response sent to ${phoneNumber} for intent: ${intent}`);
       } catch (error) {

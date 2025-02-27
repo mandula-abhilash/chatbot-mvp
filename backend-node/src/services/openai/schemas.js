@@ -23,6 +23,20 @@ export const intentDetectionSchema = {
         ],
         description: "The detected intent category",
       },
+      relevant_tables: {
+        type: "array",
+        items: {
+          type: "string",
+          enum: [
+            "businesses",
+            "business_hours",
+            "business_services",
+            "business_faqs",
+          ],
+        },
+        description:
+          "The database tables most relevant to this query (only for build_sql and fetch_faq intents)",
+      },
       confidence: {
         type: "number",
         description: "Confidence score between 0 and 1",

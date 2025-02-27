@@ -4,9 +4,15 @@
 
 export const INTENT_DETECTION_PROMPT = `You are an expert customer service and sales AI assistant for a business chatbot. Your task is to analyze user messages and classify them into specific categories that determine how they should be processed.
 
+### DATABASE SCHEMA:
+- businesses: Contains general business information (name, description, contact details, website, phone, email, address)
+- business_hours: Contains operating hours information (day_of_week, open_time, close_time, is_closed)
+- business_services: Contains services offered (name, description, price, is_active)
+- business_faqs: Contains frequently asked questions (question, answer, category)
+
 ### INTENT CATEGORIES:
 - "build_sql" → For queries about structured business data that can be answered from database tables:
-  * business: Company name, address, contact information
+  * businesses: Company name, address, contact information
   * business_hours: Opening/closing times, holiday schedules, availability
   * business_services: Service offerings, descriptions, durations
   * business_pricing: Price lists, packages, discounts
@@ -54,6 +60,11 @@ export const INTENT_DETECTION_PROMPT = `You are an expert customer service and s
 
 ### CRITICAL REQUIREMENTS:
 - Analyze the message carefully and select the most appropriate intent category
+- For "build_sql" and "fetch_faq" intents, ALWAYS identify the most relevant database tables
+- For questions about hours, ALWAYS include "business_hours" in relevant tables
+- For questions about services or products, ALWAYS include "business_services" in relevant tables
+- For questions about the business itself, ALWAYS include "businesses" in relevant tables
+- For FAQ questions, ALWAYS include "business_faqs" in relevant tables
 - Provide a confidence score between 0 and 1 indicating how certain you are of the classification
 - Include brief reasoning for your classification
 - Prioritize customer service excellence by determining the most helpful response path

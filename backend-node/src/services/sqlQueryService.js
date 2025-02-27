@@ -20,16 +20,15 @@ Possible strategies:
 - Use SELECT * to fetch full details
 - Use appropriate WHERE clauses to filter
 
-IMPORTANT: Use ONLY the following tables and their exact column names:
+IMPORTANT: Use ONLY the following table(s) and their exact column names:
 
 {table_info}
 
 CRITICAL NOTES:
-- For business_hours table, use "day_of_week" (not "day") for the day of the week
-- For business_hours table, use "is_closed" to check if business is closed on a specific day
 - For business_services table, use "is_active" to check if a service is currently offered
 - Always use the exact column names as provided in the schema
 - Limit the results to {top_k} rows
+- Log the exact SQL query you generate
 
 Question: {input}`;
 
@@ -37,6 +36,7 @@ Question: {input}`;
 const responseTemplate = `Analyze the SQL query result and provide a clear, concise response to the original question.
 
 Original Question: {input}
+SQL Query: {sql_query}
 SQL Query Result: {sql_result}
 
 Strategies for response:
@@ -111,51 +111,29 @@ function extractSqlQuery(llmOutput) {
   return cleanOutput;
 }
 
-// Function to validate SQL query against known schema issues
-function validateAndFixQuery(query) {
-  // Fix common issues
-  let fixedQuery = query;
-
-  // Fix day vs day_of_week issue
-  fixedQuery = fixedQuery.replace(/\bday\s*=/gi, "day_of_week =");
-  fixedQuery = fixedQuery.replace(/\bday\s+IN/gi, "day_of_week IN");
-
-  // Fix weekend queries
-  if (
-    fixedQuery.includes("weekend") ||
-    (fixedQuery.includes("Saturday") && fixedQuery.includes("Sunday"))
-  ) {
-    fixedQuery = fixedQuery.replace(
-      /day_of_week\s+IN\s*\(\s*['"]Saturday['"]\s*,\s*['"]Sunday['"]\s*\)/gi,
-      "day_of_week IN ('Saturday', 'Sunday')"
-    );
-  }
-
-  // Log if changes were made
-  if (fixedQuery !== query) {
-    logger.info(`Query was fixed. Original: ${query}`);
-    logger.info(`Fixed version: ${fixedQuery}`);
-  }
-
-  return fixedQuery;
-}
-
 // Main function to process a question and generate a response
 export async function getSqlQueryResult(
   question,
-  tableNames = [
-    "businesses",
-    "business_hours",
-    "business_services",
-    "business_faqs",
-  ],
+  suggestedTables = [],
   topK = 5
 ) {
   try {
-    logger.info(`Processing SQL query for question: ${question}`);
+    logger.info(`Processing SQL query for question: "${question}"`);
+    logger.info(`Suggested tables: ${suggestedTables.join(", ") || "none"}`);
+
+    // Default tables if none provided
+    const tablesToUse =
+      suggestedTables.length > 0
+        ? suggestedTables
+        : [
+            "businesses",
+            "business_hours",
+            "business_services",
+            "business_faqs",
+          ];
 
     // Get the table schema information for all requested tables
-    const tableSchemaPromises = tableNames.map((tableName) =>
+    const tableSchemaPromises = tablesToUse.map((tableName) =>
       getTableInfo(tableName)
     );
     const tableSchemas = await Promise.all(tableSchemaPromises);
@@ -177,10 +155,7 @@ export async function getSqlQueryResult(
     });
 
     const generatedQuery = queryCompletion.choices[0].message.content;
-    let cleanQuery = extractSqlQuery(generatedQuery);
-
-    // Validate and fix common issues in the query
-    cleanQuery = validateAndFixQuery(cleanQuery);
+    const cleanQuery = extractSqlQuery(generatedQuery);
 
     logger.info(`Generated SQL Query: ${cleanQuery}`);
 
@@ -195,7 +170,7 @@ export async function getSqlQueryResult(
       logger.error(`SQL execution error: ${sqlError.message}`);
 
       // Try to provide a more helpful error message
-      let errorMessage = `I encountered an error while trying to find that information: ${sqlError.message}`;
+      let errorMessage = `I encountered an error while trying to find that information: ${cleanQuery} - ${sqlError.message}`;
 
       // Add context about what we were trying to do
       if (
@@ -232,6 +207,7 @@ export async function getSqlQueryResult(
     // Generate a human-readable response using OpenAI
     const responsePrompt = responseTemplate
       .replace("{input}", question)
+      .replace("{sql_query}", cleanQuery)
       .replace("{sql_result}", resultStr);
 
     logger.debug(`Sending result prompt to OpenAI: ${responsePrompt}`);
@@ -250,134 +226,6 @@ export async function getSqlQueryResult(
   } catch (error) {
     logger.error(`Error in getSqlQueryResult: ${error.message}`, error);
     return `I'm sorry, I encountered an error while processing your request: ${error.message}`;
-  }
-}
-
-// Function to seed test data if needed
-export async function seedTestData() {
-  try {
-    // Check if we already have data
-    const businessCount = await db("businesses").count("id as count").first();
-
-    if (parseInt(businessCount.count) > 0) {
-      logger.info("Test data already exists, skipping seed");
-      return;
-    }
-
-    logger.info("Seeding test data for SQL queries...");
-
-    // Insert a test business
-    const [business] = await db("businesses")
-      .insert({
-        id: "test_business_123",
-        name: "Visdak Technologies",
-        description: "AI and software development company",
-        website_url: "https://visdak.com",
-        phone: "+918050301614",
-        email: "contact@visdak.com",
-        address: "Bangalore, India",
-      })
-      .returning("*");
-
-    // Insert business hours
-    const days = [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday",
-    ];
-    for (const day of days) {
-      await db("business_hours").insert({
-        business_id: business.id,
-        day_of_week: day,
-        open_time: day === "Saturday" || day === "Sunday" ? null : "09:00:00",
-        close_time: day === "Saturday" || day === "Sunday" ? null : "18:00:00",
-        is_closed: day === "Saturday" || day === "Sunday",
-      });
-    }
-
-    // Insert business services
-    const services = [
-      {
-        name: "AI-Powered WhatsApp Chatbot",
-        description:
-          "An intelligent solution for automating customer interactions, bookings, and product searches via WhatsApp.",
-        price: 10000,
-      },
-      {
-        name: "Custom Web Development",
-        description:
-          "Full-stack web development services utilizing React, Next.js, and scalable backend solutions.",
-        price: 50000,
-      },
-      {
-        name: "E-commerce Solutions",
-        description:
-          "Development of custom online stores, including payment gateway integration and inventory management.",
-        price: 40000,
-      },
-      {
-        name: "AI/ML Integration",
-        description:
-          "Automation services that integrate AI technologies such as OpenAI, Langchain, TensorFlow, and PyTorch.",
-        price: 75000,
-      },
-      {
-        name: "DevOps & Cloud Deployment",
-        description:
-          "Managed CI/CD services, along with deployment solutions using AWS, Kubernetes, and Docker.",
-        price: 30000,
-      },
-    ];
-
-    for (const service of services) {
-      await db("business_services").insert({
-        business_id: business.id,
-        name: service.name,
-        description: service.description,
-        price: service.price,
-        is_active: true,
-      });
-    }
-
-    // Insert FAQs
-    const faqs = [
-      {
-        question: "What are your business hours?",
-        answer:
-          "We are open Monday through Friday from 9:00 AM to 6:00 PM. We are closed on weekends.",
-        category: "general",
-      },
-      {
-        question: "Do you offer remote services?",
-        answer:
-          "Yes, all our services can be delivered remotely. We work with clients worldwide.",
-        category: "services",
-      },
-      {
-        question: "What is your refund policy?",
-        answer:
-          "We offer a 30-day money-back guarantee for our software products. Custom development projects have milestone-based refund policies outlined in the contract.",
-        category: "policy",
-      },
-    ];
-
-    for (const faq of faqs) {
-      await db("business_faqs").insert({
-        business_id: business.id,
-        question: faq.question,
-        answer: faq.answer,
-        category: faq.category,
-      });
-    }
-
-    logger.info("Test data seeded successfully");
-  } catch (error) {
-    logger.error("Error seeding test data:", error);
-    throw error;
   }
 }
 

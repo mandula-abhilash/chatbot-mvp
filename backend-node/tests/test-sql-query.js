@@ -1,9 +1,6 @@
 import dotenv from "dotenv";
-import {
-  getSqlQueryResult,
-  runTest,
-  seedTestData,
-} from "../src/services/sqlQueryService.js";
+import { getSqlQueryResult, runTest } from "../src/services/sqlQueryService.js";
+import { detectIntent } from "../src/services/intentDetectionService.js";
 import logger from "../src/utils/logger.js";
 
 // Load environment variables
@@ -20,18 +17,29 @@ if (!process.env.OPENAI_API_KEY) {
 
 const queryTest = async () => {
   try {
-    console.log("=== Testing SQL Query Service ===");
-
-    // Seed test data if needed
-    await seedTestData();
-    console.log("Test data verified/seeded");
+    console.log("=== Testing SQL Query Service with Intent Detection ===");
 
     // Test a single specific question
     const question = "What are your business hours?";
     console.log(`\nTesting specific question: "${question}"`);
 
+    // First detect intent and relevant tables
+    console.log("Step 1: Detecting intent and relevant tables...");
+    const intentResult = await detectIntent(question, {
+      businessId: "test_business",
+    });
+    console.log(`Detected intent: ${intentResult.intent}`);
+    console.log(
+      `Relevant tables: ${intentResult.relevantTables?.join(", ") || "none"}`
+    );
+
+    // Then use the SQL query service with the detected tables
+    console.log("\nStep 2: Generating SQL query and response...");
     const startTime = Date.now();
-    const response = await getSqlQueryResult(question);
+    const response = await getSqlQueryResult(
+      question,
+      intentResult.relevantTables || ["business_hours"]
+    );
     const duration = Date.now() - startTime;
 
     console.log(`Response (${duration}ms):`);
@@ -49,26 +57,34 @@ const queryTest = async () => {
       "Tell me about your AI services",
     ];
 
-    const batchResults = await runTest(testQuestions);
-
     console.log("\n=== Batch Test Results ===");
-    batchResults.forEach((result, index) => {
-      console.log(`\nTest ${index + 1}: "${result.question}"`);
-      if (result.success) {
-        console.log(`Response: ${result.response}`);
-      } else {
-        console.log(`Error: ${result.error}`);
-      }
-    });
 
-    console.log("\n=== Test Summary ===");
-    const successCount = batchResults.filter((r) => r.success).length;
-    console.log(`Total tests: ${batchResults.length}`);
-    console.log(`Successful: ${successCount}`);
-    console.log(`Failed: ${batchResults.length - successCount}`);
-    console.log(
-      `Success rate: ${Math.round((successCount / batchResults.length) * 100)}%`
-    );
+    for (let i = 0; i < testQuestions.length; i++) {
+      const testQuestion = testQuestions[i];
+      console.log(`\nTest ${i + 1}: "${testQuestion}"`);
+
+      try {
+        // First detect intent and relevant tables
+        console.log("Detecting intent...");
+        const intentResult = await detectIntent(testQuestion, {
+          businessId: "test_business",
+        });
+        console.log(`Intent: ${intentResult.intent}`);
+        console.log(
+          `Tables: ${intentResult.relevantTables?.join(", ") || "none"}`
+        );
+
+        // Then generate SQL response
+        console.log("Generating SQL response...");
+        const response = await getSqlQueryResult(
+          testQuestion,
+          intentResult.relevantTables
+        );
+        console.log(`Response: ${response}`);
+      } catch (error) {
+        console.log(`Error: ${error.message}`);
+      }
+    }
 
     console.log("\nSQL Query Service test completed successfully");
   } catch (error) {
