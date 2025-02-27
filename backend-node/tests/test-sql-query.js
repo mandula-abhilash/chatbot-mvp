@@ -1,5 +1,9 @@
 import dotenv from "dotenv";
-import { getSqlQueryResult, runTest } from "../src/services/sqlQueryService.js";
+import {
+  getSqlQueryResult,
+  runTest,
+  seedTestData,
+} from "../src/services/sqlQueryService.js";
 import logger from "../src/utils/logger.js";
 
 // Load environment variables
@@ -17,6 +21,10 @@ if (!process.env.OPENAI_API_KEY) {
 const queryTest = async () => {
   try {
     console.log("=== Testing SQL Query Service ===");
+
+    // Seed test data if needed
+    await seedTestData();
+    console.log("Test data verified/seeded");
 
     // Test a single specific question
     const question = "What are your business hours?";
@@ -37,6 +45,8 @@ const queryTest = async () => {
       "What services do you offer?",
       "When are you open on weekends?",
       "Is your business open on Mondays?",
+      "What are your hours on Saturday and Sunday?",
+      "Tell me about your AI services",
     ];
 
     const batchResults = await runTest(testQuestions);
