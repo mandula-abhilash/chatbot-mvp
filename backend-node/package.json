@@ -13,7 +13,8 @@
     "test": "node tests/intentDetection.test.js",
     "test:api": "node tests/test-client.js",
     "test:api:single": "node tests/test-client.js --single",
-    "test:api:commands": "node tests/test-client.js --commands"
+    "test:api:commands": "node tests/test-client.js --commands",
+    "test:sql-query": "node tests/test-sql-query.js"
   },
   "keywords": [],
   "author": "",
