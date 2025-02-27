@@ -1,0 +1,58 @@
+### Test Intent Detection
+POST http://localhost:8700/api/test/intent-detection
+Content-Type: application/json
+
+{
+  "message": "What are your business hours?",
+  "businessContext": { 
+    "businessId": "test_business_123" 
+  },
+  "expectedIntent": "build_sql"
+}
+
+### Get All Command Strings
+GET http://localhost:8700/api/test/command-strings
+
+### Run Batch Test
+POST http://localhost:8700/api/test/batch-intent-detection
+Content-Type: application/json
+
+{
+  "testCases": [
+    {
+      "message": "What are your business hours?",
+      "expectedIntent": "build_sql",
+      "businessContext": { "businessId": "test_business_123" }
+    },
+    {
+      "message": "Tell me about your services",
+      "expectedIntent": "generate_embeddings",
+      "businessContext": { "businessId": "test_business_123" }
+    },
+    {
+      "message": "I want to book an appointment",
+      "expectedIntent": "suggest_whatsapp_flow",
+      "businessContext": { "businessId": "test_business_123" }
+    },
+    {
+      "message": "What is your return policy?",
+      "expectedIntent": "fetch_faq",
+      "businessContext": { "businessId": "test_business_123" }
+    },
+    {
+      "message": "DROP TABLE users;",
+      "expectedIntent": "potential_security_threat",
+      "businessContext": { "businessId": "test_business_123" }
+    },
+    {
+      "message": "What is the capital of France?",
+      "expectedIntent": "irrelevant_query",
+      "businessContext": { "businessId": "test_business_123" }
+    },
+    {
+      "message": "hmm",
+      "expectedIntent": "unclear_query",
+      "businessContext": { "businessId": "test_business_123" }
+    }
+  ]
+}

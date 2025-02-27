@@ -4,6 +4,7 @@ import helmet from "helmet";
 import compression from "compression";
 import webhookRoutes from "./routes/webhookRoutes.js";
 import healthRoutes from "./routes/healthRoutes.js";
+import testRoutes from "./routes/testRoutes.js";
 import logger from "./utils/logger.js";
 
 const app = express();
@@ -30,6 +31,7 @@ app.use((req, res, next) => {
 // Routes
 app.use("/api", webhookRoutes);
 app.use("/api", healthRoutes);
+app.use("/api/test", testRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
